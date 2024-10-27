@@ -1,0 +1,150 @@
+{
+    "exporter_port": 9100,
+
+    "api_url": "http://140.123.79.92/WaWebService/Json/GetTagValue/CCU",
+    "api_key": "please fill in the key",
+    "api_update_interval_seconds": 10,
+
+    "AirQualityStation": [
+        {
+            "station_id": "B1F",
+            "station_name": "Activity center B1F",
+            "location": {
+                "latitude": 25.033,
+                "longitude": 121.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_B1F:TTEP",
+                "humidity": "CCU_CO2_B1F:THUM",
+                "pm25": "CCU_PM25_B1F:PPR2",
+                "pm10": "CCU_PM10_B1F:PPRT",
+                "co": "CCU_CO_B1F:CCO",
+                "co2": "CCU_CO2_B1F:TCO2",
+                "o3": "None",
+                "voc": "None",
+                "hc": "None"
+            }
+        },
+        {
+            "station_id": "ARF",
+            "station_name": "department of earth and enveronmental sciences's roof",
+            "location": {
+                "latitude": 23.033,
+                "longitude": 131.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_ARF:TTEP",
+                "humidity": "CCU_CO2_ARF:THUM",
+                "pm25": "CCU_PM25_ARF:PPR2",
+                "pm10": "CCU_PM10_ARF:PPRT",
+                "co": "None",
+                "co2": "CCU_CO2_ARF:TCO2",
+                "o3": "CCU_O3_ARF:TO3",
+                "voc": "None",
+                "hc": "None"
+            }
+        },
+        {
+            "station_id": "A1F",
+            "station_name": "idk",
+            "location": {
+                "latitude": 23.033,
+                "longitude": 131.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_A1F:TTEP",
+                "humidity": "CCU_CO2_A1F:THUM",
+                "pm25": "CCU_PM25_A1F:PPR2",
+                "pm10": "CCU_PM10_A1F:PPRT",
+                "co": "None",
+                "co2": "CCU_CO2_A1F:TCO2",
+                "o3": "None",
+                "voc": "None",
+                "hc": "CCU_HC_A1F:HHCH"
+            }
+        },
+        {
+            "station_id": "M",
+            "station_name": "idk",
+            "location": {
+                "latitude": 23.033,
+                "longitude": 131.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_M:TTEP",
+                "humidity": "CCU_CO2_M:THUM",
+                "pm25": "CCU_PM25_M:PPR2",
+                "pm10": "None",
+                "co": "None",
+                "co2": "CCU_CO2_M:TCO2",
+                "o3": "CCU_O3_M:PSN",
+                "voc": "CCU_VOC_M:PSN",
+                "hc": "None"
+            }
+        },
+        {
+            "station_id": "PL",
+            "station_name": "lab left",
+            "location": {
+                "latitude": 23.033,
+                "longitude": 131.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_PL:TTEP",
+                "humidity": "CCU_CO2_PL:THUM",
+                "pm25": "None",
+                "pm10": "None",
+                "co": "CCU_CO_PL:CCO",
+                "co2": "CCU_CO2_PL:TCO2",
+                "o3": "None",
+                "voc": "CCU_VC_PL:PSN",
+                "hc": "None"
+            }
+        },
+        {
+            "station_id": "PR",
+            "station_name": "lab right",
+            "location": {
+                "latitude": 23.033,
+                "longitude": 131.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_PR:TTEP",
+                "humidity": "CCU_CO2_PR:THUM",
+                "pm25": "CCU_PM_PR:PPR2",
+                "pm10": "None",
+                "co": "CCU_CO_PR:CCO",
+                "co2": "CCU_CO2_PR:TCO2",
+                "o3": "None",
+                "voc": "CCU_VC_PR:PSN",
+                "hc": "None"
+            }
+        },
+        {
+            "station_id": "106",
+            "station_name": "general aknowledg building classroom 106",
+            "location": {
+                "latitude": 23.033,
+                "longitude": 131.5654
+            },
+            "status": "active",
+            "api_names": {
+                "temperature": "CCU_CO2_106:TTEP",
+                "humidity": "CCU_CO2_106:THUM",
+                "pm25": "CCU_PM25_106:PPR2",
+                "pm10": "None",
+                "co": "None",
+                "co2": "CCU_CO2_106:TCO2",
+                "o3": "None",
+                "voc": "CCU_VOC_106:PSN",
+                "hc": "None"
+            }
+        }
+    ]
+}
