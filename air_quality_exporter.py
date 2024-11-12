@@ -105,6 +105,8 @@ class AirQualityStation:
         # }  # location of the station(latitude, longitude)
         self.status = status  # UP, DOWN
         self.api_names = api_names
+        self.latitude = latitude
+        self.longitude = longitude
         self.pollutants = Pollutants()
 
         keys_to_delete: list[str] = []
@@ -141,47 +143,47 @@ metrics = {
     "temperature": Gauge(
         "air_quality_temperature_celsius",
         "Temperature in Celsius",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "humidity": Gauge(
         "air_quality_humidity_percentage",
         "Relative humidity in percentage",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "co2": Gauge(
         "air_quality_co2_concentration_ppm",
         "CO2 concentration in parts per million",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "co": Gauge(
         "air_quality_co_concentration_ppm",
         "CO concentration in parts per million",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "pm25": Gauge(
         "air_quality_pm25_concentration_micrograms",
         "PM2.5 concentration in micrograms per cubic meter",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "pm10": Gauge(
         "air_quality_pm10_concentration_micrograms",
         "PM10 concentration in micrograms per cubic meter",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "o3": Gauge(
         "air_quality_o3_concentration_ppb",
         "O3 concentration in parts per billion",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "voc": Gauge(
         "air_quality_voc_concentration_ppb",
         "VOC concentration in parts per billion",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
     "hc": Gauge(
         "air_quality_hc_concentration_ppb",
         "HC concentration in parts per billion",
-        ["station_id"],
+        ["station_id", "latitude", "longitude"],
     ),
 }
 
@@ -210,32 +212,25 @@ def collect_data():
         new_values = station.update_pollutant_data()
 
         for pollutants_type, value in new_values.items():
-            if value == -1:
-                metrics[pollutants_type].labels(station_id=station.station_id).set(
-                    float("NaN")
-                )
-                logger.warning(
-                    f"Station {station.station_id}: {pollutants_type} = {value}"
-                )
-            elif value == -2:
-                metrics[pollutants_type].labels(station_id=station.station_id).set(
-                    float("NaN")
-                )
-                logger.error(
-                    f"Station {station.station_id}: {pollutants_type} = {value}"
-                )
+            if value == -1 or value == -2:
+                output_value = float("NaN")
+                logger.warning(f"Station {station.station_id}: {pollutants_type} = {value}")
             else:
-                metrics[pollutants_type].labels(station_id=station.station_id).set(
-                    value
-                )
-                logger.info(
-                    f"Station {station.station_id}: {pollutants_type} = {value}"
-                )
+                output_value = value
+                logger.info(f"Station {station.station_id}: {pollutants_type} = {value}")
+
+            metrics[pollutants_type].labels(
+                station_id=station.station_id,
+                latitude=station.latitude,
+                longitude=station.longitude,
+            ).set(output_value)
 
 
 def handler(signum: int, frame: Optional[FrameType]):
-    _ = signal.alarm(API_UPDATE_INTERVAL_SECONDS)
-    collect_data()
+    _ = signal.alarm(
+        API_UPDATE_INTERVAL_SECONDS
+    )  # set the alarm signal to call collect_data() every API_UPDATE_INTERVAL_SECONDS
+    collect_data()  # collect the data
 
 
 if __name__ == "__main__":
@@ -246,6 +241,7 @@ if __name__ == "__main__":
     # set the signal handler for SIGALRM
     _ = signal.signal(signal.SIGALRM, handler)
 
+    # collect the data for the first time
     collect_data()
 
     while True:
