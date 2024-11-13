@@ -10,8 +10,8 @@
             "station_id": "B1F",
             "station_name": "Activity center B1F",
             "location": {
-                "latitude": 25.033,
-                "longitude": 121.5654
+                "latitude": 23.56072485225277,
+                "longitude": 120.47249742089286
             },
             "status": "active",
             "api_names": {
@@ -30,8 +30,8 @@
             "station_id": "ARF",
             "station_name": "department of earth and enveronmental sciences's roof",
             "location": {
-                "latitude": 23.033,
-                "longitude": 131.5654
+                "latitude": 23.565469377366977,
+                "longitude": 120.4752483732927
             },
             "status": "active",
             "api_names": {
@@ -50,8 +50,8 @@
             "station_id": "A1F",
             "station_name": "idk",
             "location": {
-                "latitude": 23.033,
-                "longitude": 131.5654
+                "latitude": 23.56506937048895,
+                "longitude": 120.47542334630626
             },
             "status": "active",
             "api_names": {
@@ -70,8 +70,8 @@
             "station_id": "M",
             "station_name": "idk",
             "location": {
-                "latitude": 23.033,
-                "longitude": 131.5654
+                "latitude": 23.562647904278354,
+                "longitude": 120.47518670555739
             },
             "status": "active",
             "api_names": {
@@ -90,8 +90,8 @@
             "station_id": "PL",
             "station_name": "lab left",
             "location": {
-                "latitude": 23.033,
-                "longitude": 131.5654
+                "latitude": 23.56502542324213,
+                "longitude": 120.47505851377504
             },
             "status": "active",
             "api_names": {
@@ -110,8 +110,8 @@
             "station_id": "PR",
             "station_name": "lab right",
             "location": {
-                "latitude": 23.033,
-                "longitude": 131.5654
+                "latitude": 23.565384270906442,
+                "longitude": 120.47538843936977
             },
             "status": "active",
             "api_names": {
@@ -130,8 +130,8 @@
             "station_id": "106",
             "station_name": "general aknowledg building classroom 106",
             "location": {
-                "latitude": 23.033,
-                "longitude": 131.5654
+                "latitude": 23.56289728926752,
+                "longitude": 120.47604795084274
             },
             "status": "active",
             "api_names": {
