@@ -161,12 +161,12 @@ metrics = {
         ["station_id", "latitude", "longitude"],
     ),
     "pm25": Gauge(
-        "air_quality_pm25_concentration_micrograms",
+        "air_quality_pm25_concentration_microgram_cubic_meter",
         "PM2.5 concentration in micrograms per cubic meter",
         ["station_id", "latitude", "longitude"],
     ),
     "pm10": Gauge(
-        "air_quality_pm10_concentration_micrograms",
+        "air_quality_pm10_concentration_microgram_cubic_meter",
         "PM10 concentration in micrograms per cubic meter",
         ["station_id", "latitude", "longitude"],
     ),

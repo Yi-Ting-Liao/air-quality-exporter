@@ -1,9 +1,9 @@
 {
-    "exporter_port": 9100,
+    "exporter_port": 9101,
 
     "api_url": "http://140.123.79.92/WaWebService/Json/GetTagValue/CCU",
     "api_key": "please fill in the key",
-    "api_update_interval_seconds": 10,
+    "api_update_interval_seconds": 300,
 
     "AirQualityStation": [
         {
