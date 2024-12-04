@@ -4,7 +4,7 @@
 
 這是一個 Prometheus 的 exporter，用來將空氣品質的資料轉換成 Prometheus 可以讀取的格式。
 
-空氣品質的資料來源是由[中正大學化生系 胡維平教授 實驗室](https://lab409chem.ccu.edu.tw/)所提供的開放資料。
+空氣品質的資料來源是由[中正大學化生系 胡維平教授 實驗室](https://lab409chem.ccu.edu.tw/)所提供的資料。
 
 ## 使用方式
 
