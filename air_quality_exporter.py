@@ -1,31 +1,51 @@
-from typing import Optional
 from prometheus_client import start_http_server, Gauge
 from loguru import logger
+from dotenv import load_dotenv
+from typing import Optional
 from types import FrameType
+import requests
+import json
 import sys
 import signal
 import time
-import requests
-import json
+import os
 
-CONFIG_FILE = "config.json"
+_ = load_dotenv()
+
+CONFIG_FILE = os.getenv("STATIONS_CONFIG_FILE", "config.json")  # default config file is config.json
+EXPORTER_PORT = int(os.getenv("EXPORTER_PORT", 9100))  # default port is 9100
+API_URL = os.getenv("API_URL")
+API_KEY = os.getenv("API_KEY")
+API_UPDATE_INTERVAL_SEC = int(os.getenv("API_UPDATE_INTERVAL_SEC", 300))  # default interval is 300 seconds
+LOG_LEVEL = os.getenv("LOG_LEVEL", "WARNING")  # default log level is WARNING
+
+# setting up logging
+logger.remove()  # remove the default logger
+_ = logger.add(sys.stderr, level=LOG_LEVEL)  # add a new logger to stderr
+
+if not CONFIG_FILE:
+    logger.warning("STATIONS_CONFIG_FILE environment variable is not set, using default value config.json")
+if not EXPORTER_PORT:
+    logger.warning("EXPORTER_PORT environment variable is not set, using default value 9100")
+if not API_URL:
+    logger.error("API_URL environment variable is not set")
+    sys.exit(1)
+if not API_KEY:
+    logger.error("API_KEY environment variable is not set")
+    sys.exit(1)
+if not API_UPDATE_INTERVAL_SEC:
+    logger.warning("API_UPDATE_INTERVAL_SEC environment variable is not set, using default value 300")
+if not LOG_LEVEL:
+    logger.warning("LOG_LEVEL environment variable is not set, using default value WARNING")
 
 with open(CONFIG_FILE, "r") as f:
     config = json.load(f)
-
-EXPORTER_PORT = config["exporter_port"]
-API_URL = config["api_url"]
-API_KEY = config["api_key"]
-API_UPDATE_INTERVAL_SECONDS = config["api_update_interval_seconds"]
 
 REQUEST_HEADERS: dict[str, str] = {
     "Content-Type": "application/json",
     "charset": "utf-8",
     "Authorization": "Basic " + API_KEY,
 }
-
-# setting up logging
-_ = logger.add(sys.stderr, level="DEBUG")
 
 
 class Pollutants:
@@ -99,10 +119,6 @@ class AirQualityStation:
     ):
         self.station_id = station_id  # the name of url
         self.station_name = station_name  # describe the station
-        # self.location = {
-        #     "latitude": latitude,
-        #     "longitude": longitude,
-        # }  # location of the station(latitude, longitude)
         self.status = status  # UP, DOWN
         self.api_names = api_names
         self.latitude = latitude
@@ -124,13 +140,31 @@ class AirQualityStation:
         for pollutants_type, api_names in self.api_names.items():
             request_data = {"Tags": [{"Name": api_names}]}
 
-            r = requests.post(
-                API_URL,
-                data=json.dumps(request_data),
-                headers=REQUEST_HEADERS,
-            ).json()
+            if API_URL is None:
+                logger.error("API_URL is not set")
+                continue
 
-            new_value = r["Values"][0]["Value"]
+            try:
+                response = requests.post(
+                    API_URL,
+                    data=json.dumps(request_data),
+                    headers=REQUEST_HEADERS,
+                )
+                response.raise_for_status()
+                r = response.json()
+
+                if "Values" in r and len(r["Values"]) > 0 and "Value" in r["Values"][0]:
+                    new_value = r["Values"][0]["Value"]
+                else:
+                    logger.error(f"Invalid response format for {pollutants_type}: {r}")
+                    new_value = float("NaN")
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Request failed for {pollutants_type}: {e}")
+                new_value = float("NaN")
+            except (ValueError, KeyError) as e:
+                logger.error(f"Error processing response for {pollutants_type}: {e}")
+                new_value = float("NaN")
 
             self.pollutants.update_pollutant_data(pollutants_type, new_value)
 
@@ -139,6 +173,7 @@ class AirQualityStation:
         return new_values
 
 
+# Setting up the metrics
 metrics = {
     "temperature": Gauge(
         "air_quality_temperature_celsius",
@@ -188,14 +223,16 @@ metrics = {
 }
 
 
-air_quailty_stations_list = config["AirQualityStation"]
+air_quality_stations_list = config["AirQualityStation"]
 
-air_quailty_stations: list[AirQualityStation] = []
+air_quality_stations: list[AirQualityStation] = []
 
 # warning if no station is found
+if not air_quality_stations_list:
+    logger.warning("No station found in the config file")
 
-for station in air_quailty_stations_list:
-    air_quailty_stations.append(
+for station in air_quality_stations_list:
+    air_quality_stations.append(
         AirQualityStation(
             station["station_id"],
             station["station_name"],
@@ -208,11 +245,11 @@ for station in air_quailty_stations_list:
 
 
 def collect_data():
-    for station in air_quailty_stations:
+    for station in air_quality_stations:
         new_values = station.update_pollutant_data()
 
         for pollutants_type, value in new_values.items():
-            if value == -1 or value == -2:
+            if value == -1 or value == -2:  # -1 or -2 indicates invalid data
                 output_value = float("NaN")
                 logger.warning(f"Station {station.station_id}: {pollutants_type} = {value}")
             else:
@@ -227,9 +264,16 @@ def collect_data():
 
 
 def handler(signum: int, frame: Optional[FrameType]):
-    _ = signal.alarm(
-        API_UPDATE_INTERVAL_SECONDS
-    )  # set the alarm signal to call collect_data() every API_UPDATE_INTERVAL_SECONDS
+    """
+    Signal handler function to collect data at regular intervals.
+
+    Args:
+        signum (int): The signal number.
+        frame (Optional[FrameType]): The current stack frame (or None).
+    """
+    # set the alarm signal to call collect_data() every API_UPDATE_INTERVAL_SECONDS
+    _ = signal.alarm(API_UPDATE_INTERVAL_SEC)
+
     collect_data()  # collect the data
 
 
@@ -237,7 +281,7 @@ if __name__ == "__main__":
     _ = start_http_server(EXPORTER_PORT)  # start the http server at EXPORTER_PORT
 
     # set the alarm signal to call collect_data() every API_UPDATE_INTERVAL_SECONDS
-    _ = signal.alarm(API_UPDATE_INTERVAL_SECONDS)
+    _ = signal.alarm(API_UPDATE_INTERVAL_SEC)
     # set the signal handler for SIGALRM
     _ = signal.signal(signal.SIGALRM, handler)
 
@@ -245,4 +289,4 @@ if __name__ == "__main__":
     collect_data()
 
     while True:
-        time.sleep(2 * API_UPDATE_INTERVAL_SECONDS)
+        time.sleep(2 * API_UPDATE_INTERVAL_SEC)

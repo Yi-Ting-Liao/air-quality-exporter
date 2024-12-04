@@ -1,10 +1,4 @@
 {
-    "exporter_port": 9101,
-
-    "api_url": "http://140.123.79.92/WaWebService/Json/GetTagValue/CCU",
-    "api_key": "please fill in the key",
-    "api_update_interval_seconds": 300,
-
     "AirQualityStation": [
         {
             "station_id": "B1F",
@@ -28,7 +22,7 @@
         },
         {
             "station_id": "ARF",
-            "station_name": "department of earth and enveronmental sciences's roof",
+            "station_name": "department of earth and environmental sciences's roof",
             "location": {
                 "latitude": 23.565469377366977,
                 "longitude": 120.4752483732927
@@ -128,7 +122,7 @@
         },
         {
             "station_id": "106",
-            "station_name": "general aknowledg building classroom 106",
+            "station_name": "general knowledge building classroom 106",
             "location": {
                 "latitude": 23.56289728926752,
                 "longitude": 120.47604795084274
