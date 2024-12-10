@@ -3,6 +3,9 @@ from loguru import logger
 from dotenv import load_dotenv
 from typing import Optional
 from types import FrameType
+import re
+import numpy as np
+import pandas as pd
 import requests
 import json
 import sys
@@ -17,11 +20,15 @@ EXPORTER_PORT = int(os.getenv("EXPORTER_PORT", 9100))  # default port is 9100
 API_URL = os.getenv("API_URL")
 API_KEY = os.getenv("API_KEY")
 API_UPDATE_INTERVAL_SEC = int(os.getenv("API_UPDATE_INTERVAL_SEC", 300))  # default interval is 300 seconds
+PROMETHEUS_QUERY_URL = os.getenv(
+    "PROMETHEUS_QUERY_URL", "http://localhost:9090/api/v1/query"
+)  # default url is localhost
 LOG_LEVEL = os.getenv("LOG_LEVEL", "WARNING")  # default log level is WARNING
+
 
 # setting up logging
 logger.remove()  # remove the default logger
-_ = logger.add(sys.stderr, level=LOG_LEVEL)  # add a new logger to stderr
+_ = logger.add(sys.stderr)  # add a new logger to stderr
 
 if not CONFIG_FILE:
     logger.warning("STATIONS_CONFIG_FILE environment variable is not set, using default value config.json")
@@ -35,6 +42,10 @@ if not API_KEY:
     sys.exit(1)
 if not API_UPDATE_INTERVAL_SEC:
     logger.warning("API_UPDATE_INTERVAL_SEC environment variable is not set, using default value 300")
+if not PROMETHEUS_QUERY_URL:
+    logger.warning(
+        "PROMETHEUS_QUERY_URL environment variable is not set, using default value http://localhost:9090/api/v1/query"
+    )
 if not LOG_LEVEL:
     logger.warning("LOG_LEVEL environment variable is not set, using default value WARNING")
 
@@ -220,6 +231,11 @@ metrics = {
         "HC concentration in parts per billion",
         ["station_id", "latitude", "longitude"],
     ),
+    "aqi": Gauge(
+        "air_quality_aqi",
+        "Air Quality Index",
+        ["station_id", "latitude", "longitude"],
+    ),
 }
 
 
@@ -244,6 +260,62 @@ for station in air_quality_stations_list:
     )
 
 
+def interpolate(xp, yp):
+    return lambda a: np.interp(a, xp, yp)
+
+
+def get_mean(url, hr):
+    raw = requests.get(url).json()["data"]["result"]
+    res = {s: np.float64(np.nan) for s in ["B1F", "M", "106", "A1F", "PL", "PR", "ARF"]}
+    for i in raw:
+        df = pd.DataFrame(i["values"])
+        (data := df.iloc[:, 1].apply(lambda x: int(x) if x.isdigit() else np.nan)).index = pd.to_datetime(
+            df.iloc[:, 0], unit="s"
+        )
+        res.update([(i["metric"]["station_id"], data.rolling(f"{hr}h", min_periods=1).mean().iloc[-1])])
+    return res
+
+
+def get_aqi_data(threshold=151):
+    df = pd.DataFrame(
+        {
+            sid: get_mean(f"{PROMETHEUS_QUERY_URL}?query=air_quality_{name}%5B8h%5D", hr)
+            for sid, name, hr in [
+                ("O3_8", "o3_ppb", 8),
+                ("O3_1", "o3_ppb", 1),
+                ("PM25", "pm25_microgram_cubic_meter", 24),
+                ("PM10", "pm10_microgram_cubic_meter", 24),
+                ("CO", "co_ppm", 8),
+            ]
+        }
+    )
+    df[(df < AQI_min) | (read_error := (df > AQI_max) | (df < 0))] = np.nan
+    df["AQI"] = np.nanmax(AQI_eval(funcs, df.T), axis=0)
+    # df.loc["B1F", "AQI"] = np.nan  # 測試用
+    df["risk"] = AQI_map.index[np.minimum(np.searchsorted(y, df["AQI"]) // 2, 6)]
+    df.loc[pd.isna(df["AQI"]), "risk"] = np.nan
+    df["abnormal"] = df["AQI"] >= threshold
+    return df.iloc[:, 5:], read_error
+
+
+AQI_map = pd.read_csv("AQI.csv", index_col=0)
+AQI_map = AQI_map.apply(
+    np.vectorize(lambda s: list(map(float, re.search(r"(\d+\.?\d*)\s*-\s*(\d+\.?\d*)", s).groups())), otypes=[list]),
+    raw=True,
+)[AQI_map != "0 - 0"]
+(
+    intervals := AQI_map.apply(
+        lambda s: pd.Series(
+            (np.vstack(s.dropna()).ravel(), np.repeat(~pd.isna(s).to_numpy(), 2)), index=["val", "mask"]
+        )
+    ).T
+).iloc[:2, 0] *= 1000
+y = np.vstack(AQI_map.index.to_series().apply(lambda s: list(map(int, re.search(r"(\d+)～(\d+)", s).groups())))).ravel()
+AQI_min, AQI_max = intervals["val"].apply(lambda arr: pd.Series(arr[[0, -1]])).to_numpy().T
+funcs = intervals.apply(lambda arr: interpolate(arr["val"], y[arr["mask"]]), axis=1).to_numpy()
+AQI_eval = np.vectorize(lambda f, x: f(x), signature="(), (x)->(x)")
+
+
 def collect_data():
     for station in air_quality_stations:
         new_values = station.update_pollutant_data()
@@ -261,6 +333,23 @@ def collect_data():
                 latitude=station.latitude,
                 longitude=station.longitude,
             ).set(output_value)
+
+    AQI, read_error = get_aqi_data()
+
+    for station in air_quality_stations:
+        aqi_value = AQI.loc[station.station_id, "AQI"]
+        if aqi_value == np.nan:
+            aqi_output_value = float("NaN")
+            logger.warning(f"Station {station.station_id}: AQI = {aqi_value}")
+        else:
+            aqi_output_value = aqi_value
+            logger.info(f"Station {station.station_id}: AQI = {aqi_value}")
+
+        metrics["aqi"].labels(
+            station_id=station.station_id,
+            latitude=station.latitude,
+            longitude=station.longitude,
+        ).set(aqi_output_value)
 
 
 def handler(signum: int, frame: Optional[FrameType]):
